@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
+import { query } from "../config/db.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 export const protect = asyncHandler(async (req, res, next) => {
@@ -18,11 +18,21 @@ export const protect = asyncHandler(async (req, res, next) => {
     throw new Error("Not authorized, token invalid or expired");
   }
 
-  req.user = await User.findById(decoded.id);
-  if (!req.user) {
+  const { rows } = await query("SELECT id, name, email FROM public.users WHERE id = $1", [
+    decoded.id,
+  ]);
+
+  if (!rows[0]) {
     res.status(401);
     throw new Error("Not authorized, user not found");
   }
+
+  req.user = {
+    _id: rows[0].id,
+    id: rows[0].id,
+    name: rows[0].name,
+    email: rows[0].email,
+  };
 
   next();
 });
